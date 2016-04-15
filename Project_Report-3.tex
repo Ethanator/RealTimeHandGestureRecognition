@@ -1,0 +1,50 @@
+\documentclass[12pt]{article}
+\usepackage{latexsym,amsmath}
+\usepackage{amssymb}
+\usepackage{verbatim}
+\newcommand{\roll}{\vspace{1mm}}
+\usepackage{url}
+\usepackage{graphicx}
+\graphicspath{ {./} }
+%%%%%%%%% EXACT 1 in MARGINS %%%%%%%%%
+\setlength{\textwidth}{6.5in}                                       %% %%
+\setlength{\oddsidemargin}{0in}                                 %% %%
+\setlength{\evensidemargin}{0in}                               %% %%
+\setlength{\textheight}{8.5in}                                      %% %%
+\setlength{\topmargin}{0in}       				       %% %%
+\setlength{\headheight}{0in}                                       %% %%
+\setlength{\headsep}{0in}                                           %% %%
+\setlength{\footskip}{.5in}                                           %% %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+\title{Computer Vision (CSE 40535/60535)\\Project Report 2: Feature Exaction}
+\author{Ethan Chen}
+\date{April 15, 2016}
+\maketitle
+
+\section{Segmentation}
+By the time of my last report, I had not achieved real-time segmentation. Now, that part is completed and Figure \ref{fig:seg} shows how it works.
+\begin{figure}[h]
+  \centering
+    \includegraphics[width=0.5\textwidth]{Effect.png}
+    \caption{Segmentation of a Hand}
+    \label{fig:seg}
+\end{figure}
+
+\section{Geometric Features}
+I try to tease out the following features:
+\begin{itemize}
+\item Area and perimeter
+\item Height and width
+\item Mass center
+\item Compactness
+\item Normalized compactness
+\item Major and minor axes lengths
+\item Orientation
+\item Eccentricity
+\item Hu moments
+\end{itemize}
+I am able to compute all the features except compactness, normalized compactness, and Hu moments. I had trouble extracting the raw data from the area and perimeter variables which are 0x1 struct arrays, and that is why I cannot calculate the former two. As for Hu moments, the computation is tedious.
+
+\end{document}
