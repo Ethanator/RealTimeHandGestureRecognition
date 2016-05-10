@@ -1,7 +1,7 @@
 % RealTimeHandGestureRecognition.m
-% Recognize hand gestures in real time.
-%   Author: Yuxuan Chen
-%     Date: March 4, 2016
+% Recognize different hand gestures in real time.
+%   Author: Ethan Chen
+%     Date: May 9, 2016
 
 %% Main program
 close all
@@ -18,44 +18,42 @@ numBands  = get(video, 'NumberOfBands');
 gui = image(zeros(imgHeight, imgWidth, numBands));
 preview(video, gui);
 
-% Train
-% gesture = 7
-% ouf = fopen(strcat(int2str(gesture), '.txt'), 'wt');
-
 % Gesture Codes
 gestures = containers.Map;
-gestures('1') = 'Rock';
-gestures('2') = 'Scissors';
-gestures('3') = 'OK';
-gestures('4') = 'Metalhead';
-gestures('5') = 'Paper';
-gestures('6') = 'Phone';
-gestures('7') = 'Pistol';
+gestures('0') = 'Fist';
+gestures('1') = 'One';
+gestures('2') = 'Two';
+gestures('3') = 'Three';
+gestures('4') = 'Four';
+gestures('5') = 'Five';
+gestures('6') = 'Call Me';
+gestures('7') = 'Loser';
+gestures('8') = 'Hook ''em Horns';
+gestures('9') = 'Middle Finger';
+gestures('10') = 'Thumbs Up';
+gestures('11') = 'Thumbs Down';
+gestures('12') = 'I Love You';
+gestures('13') = 'OK';
+
+% Train
+% gesture = 13;
+% ouf = fopen(strcat(int2str(gesture), '.txt'), 'wt');
 
 % Classify
 load('baggedTreesClassifier.mat')
 
 while(1)
   %% Segmentation
-  tic
-  Irgb = getsnapshot(video);
-  toc
-  
-  tic
-  Ihsv = rgb2hsv(Irgb);
-  
-  R  =   Irgb(:, :, 1);
-  G  =   Irgb(:, :, 2);
-  B  =   Irgb(:, :, 3);
-  H  =   Ihsv(:, :, 1);
-  S  =   Ihsv(:, :, 2);
-  V  =   Ihsv(:, :, 3);
-  % cond = R >= 100 & R <= 160 & ...
-         % G >= 100 & G <= 150 & ...
-         % B >= 100 & B <= 150;
-  cond = (H <= 0.1 | H >= 0.8) & ...
-         S >= 0.1 & S <= 0.25 & ...
-         V >= 0.3 & V <= 0.7;
+  Irgb   = getsnapshot(video);
+  Ihsv   = rgb2hsv(Irgb);
+  Iycbcr = rgb2ycbcr(Irgb);
+  H  = Ihsv(:, :, 1);
+  S  = Ihsv(:, :, 2);
+  V  = Ihsv(:, :, 3);
+  cb = Iycbcr(:, :, 2);
+  cr = Iycbcr(:, :, 3);
+  cond = (H < 0.1 | H > 0.75) & S > 0.1 & S < 0.6 & V > 0.4 & ...
+      cb > 90 & cb < 140 & cr > 130;
   cond = bwareaopen(cond, 1000, 8);
 
   % The location of the hand on the captured RGB image
@@ -76,17 +74,13 @@ while(1)
   
   % Segmented image of the hand
   roi = cond(min(x): max(x), min(y): max(y), :);
-  
-  toc
-  
-  tic
+ 
   fig3 = figure(3);
   imshow(roi, 'InitialMagnification', 'fit')
   
   iptwindowalign(fig2, 'bottom', fig3, 'top');
-  
+ 
   %% Geometric Features
-  
   % Area and perimeter
   roiArea = regionprops(roi, 'Area');
   roiPerim = regionprops(roi, 'Perimeter');
@@ -112,39 +106,52 @@ while(1)
   % Normalized compactness
   roiNormComp = 1 - 4 * pi * roiArea / roiPerim ^ 2;
   
+  % Major and minor axes lengths
+  roiMajAxis = regionprops(roi, 'MajorAxisLength');
+  roiMajAxis = getfield(roiMajAxis, 'MajorAxisLength');
   roiMinAxis = regionprops(roi, 'MinorAxisLength');
   roiMinAxis = getfield(roiMinAxis, 'MinorAxisLength');
-  % Major and minor axes lengths
-  % roiMajAxis = regionprops(roi, 'MajorAxisLength');
-  % roiMajAxis = getfield(roiMajAxis, 'MajorAxisLength');
-  
-  % roiMinAxis = regionprops(roi, 'MinorAxisLength');
-  % roiMinAxis = getfield(roiMinAxis, 'MinorAxisLength');
   
   % Orientation
-  % roiOrient = regionprops(roi, 'Orientation');
-  % roiOrient = getfield(roiOrient, 'Orientation');
+  roiOrient = regionprops(roi, 'Orientation');
+  roiOrient = getfield(roiOrient, 'Orientation');
   
   % Eccentricity
-  % roiEccent = regionprops(roi, 'Eccentricity');
-  % roiEccent = getfield(roiEccent, 'Eccentricity');
+  roiEccent = regionprops(roi, 'Eccentricity');
+  roiEccent = getfield(roiEccent, 'Eccentricity');
   
   % Hu Moments
   hu_moments = HuMoments(roi);
   
+  data = table;
+  data.Height       = roiHeight;
+  data.Width        = roiWidth;
+  data.CenterX      = roiCenter(1);
+  data.CenterY      = roiCenter(2);
+  data.Area         = roiArea;
+  data.Perimeter    = roiPerim;
+  data.Compactness  = roiNormComp;
+  data.MajorAxis    = roiMajAxis;
+  data.MinorAxis    = roiMinAxis;
+  data.Orientation  = roiOrient;
+  data.Eccentricity = roiEccent;
+  data.HuMoment1    = hu_moments(1);
+  data.HuMoment2    = hu_moments(2);
+  data.HuMoment3    = hu_moments(3);
+  data.HuMoment4    = hu_moments(4);
+  data.HuMoment5    = hu_moments(5);
+  data.HuMoment6    = hu_moments(6);
+  data.HuMoment7    = hu_moments(7);
+
   % Classify
-  data = [roiHeight, roiWidth, roiCenter(1), roiCenter(2), roiArea, roiPerim, roiNormComp, hu_moments(1), hu_moments(2), hu_moments(3), hu_moments(4), hu_moments(5), hu_moments(6), hu_moments(7)];
-  toc
-  
-  tic
-  gesture = gestures(int2str(baggedTreesClassifier.predict(data)))
-  toc
+  gesture = gestures(int2str(baggedTreesClassifier.predictFcn(data)))
   
   % Train
   % fprintf(ouf, '%0.12f\t%0.12f\t%0.12f\t%0.12f\t%0.12f\t%0.12f\t%0.12f\t%0.12f\t%0.12f\t%0.12f\t%0.12f\t%0.12f\t%0.12f\t%0.12f\t%0.12f\t%0.12f\t%0.12f\t%0.12f\t%d\n', ...
   %   [data, gesture]);
 end
 
-% Comment out when not collecting data
+% Train
 % fclose(ouf);
+
 stop(video);
